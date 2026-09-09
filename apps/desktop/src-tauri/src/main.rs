@@ -345,8 +345,19 @@ fn main() {
             )?;
             let menu = tauri::menu::Menu::with_items(app, &[&toggle_item, &quit_item])?;
 
+            let icon = app
+                .default_window_icon()
+                .cloned()
+                .unwrap_or_else(|| {
+                    let mut rgba = Vec::with_capacity(32 * 32 * 4);
+                    for _ in 0..(32 * 32) {
+                        rgba.extend_from_slice(&[56, 189, 248, 255]); // Sky-400
+                    }
+                    tauri::image::Image::new_owned(rgba, 32, 32)
+                });
+
             let _tray = tauri::tray::TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(icon)
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {

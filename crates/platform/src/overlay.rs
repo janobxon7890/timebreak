@@ -71,7 +71,7 @@ pub mod macos {
         }
 
         // kCGStatusWindowLevelKey = 25 or NSFloatingWindowLevel = 3
-        let floating_level: i32 = 25;
+        let floating_level: i64 = 25;
         let _: () = msg_send![ns_window, setLevel: floating_level];
 
         // Transparent background
@@ -82,13 +82,12 @@ pub mod macos {
 
         let content_view: id = msg_send![ns_window, contentView];
         if content_view != nil {
-            let _: () = msg_send![content_view, setWantsLayer: 1i8];
+            let _: () = msg_send![content_view, setWantsLayer: cocoa::base::YES];
         }
 
-        // Join all spaces, follow into active space, and float over native full screen apps
+        // Join all spaces and show over full screen apps
         let behavior = NSWindowCollectionBehavior::NSWindowCollectionBehaviorCanJoinAllSpaces
-            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary
-            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorMoveToActiveSpace;
+            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary;
         ns_window.setCollectionBehavior_(behavior);
     }
 }
