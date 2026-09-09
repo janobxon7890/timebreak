@@ -6,7 +6,7 @@ import {
   ShotTelemetryEvent,
   WeaponDefinition,
 } from '@timebreak/shared-types';
-import { Maximize2, Minimize2, Settings, X, Crosshair } from 'lucide-react';
+import { Maximize2, Minimize2, Settings, X, Crosshair, EyeOff } from 'lucide-react';
 
 interface OverlayViewProps {
   weapon: WeaponDefinition;
@@ -16,6 +16,7 @@ interface OverlayViewProps {
   onSessionFinish: (shots: ShotTelemetryEvent[], durationSeconds: number) => void;
   onEscape: () => void;
   onOpenDashboard?: () => void;
+  onHide?: () => void;
 }
 
 export const OverlayView: React.FC<OverlayViewProps> = ({
@@ -26,10 +27,24 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
   onSessionFinish,
   onEscape,
   onOpenDashboard,
+  onHide,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const [isPipMode, setIsPipMode] = useState<boolean>(false);
+
+  const handleHide = async () => {
+    if (onHide) {
+      onHide();
+      return;
+    }
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('hide_overlay');
+    } catch {
+      onEscape();
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -48,6 +63,7 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
       {
         onSessionFinish,
         onEscape,
+        onHide: handleHide,
       }
     );
     engineRef.current = engine;
@@ -103,18 +119,31 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
 
       {/* Floating Transparent Controls Toolbar (Telegram PiP style) */}
       <div className="absolute top-3 left-4 right-4 z-40 flex items-center justify-between pointer-events-none">
-        {/* Left Badge: Status & Active Weapon */}
+        {/* Left Badge: Status & Active Weapon & Hotkey */}
         <div className="pointer-events-auto flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/10 shadow-lg text-xs font-mono text-slate-200">
           <Crosshair className="w-3.5 h-3.5 text-sky-400" />
           <span className="font-bold text-sky-400">TimeBreak</span>
           <span className="text-slate-500">•</span>
           <span>{weapon.displayName}</span>
           <span className="text-slate-500">•</span>
-          <span className="text-emerald-400">100% Transparent Overlay</span>
+          <span className="text-slate-300">
+            Hot key: <kbd className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">H</kbd> yashirish
+          </span>
         </div>
 
         {/* Right Action Buttons */}
         <div className="pointer-events-auto flex items-center gap-2">
+          {/* Hide overlay button (H hotkey) */}
+          <button
+            onClick={handleHide}
+            title="Ekrandan yashirish (Hot key: 'H')"
+            className="px-2.5 py-1.5 rounded-full bg-slate-950/60 hover:bg-slate-900/80 backdrop-blur-md border border-white/10 text-slate-300 hover:text-amber-400 transition-all shadow-lg cursor-pointer flex items-center gap-1.5 text-xs font-mono"
+          >
+            <EyeOff className="w-3.5 h-3.5" />
+            <span className="font-bold text-amber-400">H</span>
+            <span className="text-slate-300 hidden sm:inline">Yashirish</span>
+          </button>
+
           {/* PiP / Fullscreen Toggle */}
           <button
             onClick={togglePip}

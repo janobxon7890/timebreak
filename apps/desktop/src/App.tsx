@@ -147,10 +147,43 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [schedulerConfig]);
 
+  // Global 'H' hotkey to easily hide overlay from anywhere
+  useEffect(() => {
+    const handleGlobalKeyDown = async (e: KeyboardEvent) => {
+      if (e.key === 'h' || e.key === 'H') {
+        if (
+          document.activeElement?.tagName === 'INPUT' ||
+          document.activeElement?.tagName === 'TEXTAREA'
+        ) {
+          return;
+        }
+        e.preventDefault();
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          await invoke('hide_overlay');
+        } catch {
+          // Fallback
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
   const handleEscape = async () => {
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('emergency_escape');
+    } catch {
+      // Fallback
+    }
+  };
+
+  const handleHide = async () => {
+    try {
+      const { invoke } = await import('@tauri-apps/api/core');
+      await invoke('hide_overlay');
     } catch {
       // Fallback
     }
@@ -237,6 +270,7 @@ export const App: React.FC = () => {
         durationSeconds={schedulerConfig.breakDurationMinutes * 60}
         onSessionFinish={handleSessionFinish}
         onEscape={handleEscape}
+        onHide={handleHide}
         onOpenDashboard={() => setActiveModal('dashboard')}
       />
 

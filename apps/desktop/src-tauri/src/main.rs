@@ -184,28 +184,106 @@ fn set_setting(state: State<TimeBreakState>, key: String, value: String) -> Resu
 }
 
 #[tauri::command]
+fn hide_overlay(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.hide().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn show_overlay(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.show().map_err(|e| e.to_string())?;
+    window.set_focus().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::id;
+        if let Ok(ns_window_ptr) = window.ns_window() {
+            let ns_window = ns_window_ptr as id;
+            unsafe {
+                timebreak_platform::macos::configure_macos_transparent_overlay(ns_window);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn toggle_overlay_visibility(window: tauri::WebviewWindow) -> Result<bool, String> {
+    let is_visible = window.is_visible().unwrap_or(true);
+    if is_visible {
+        window.hide().map_err(|e| e.to_string())?;
+        Ok(false)
+    } else {
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+        #[cfg(target_os = "macos")]
+        {
+            use cocoa::base::id;
+            if let Ok(ns_window_ptr) = window.ns_window() {
+                let ns_window = ns_window_ptr as id;
+                unsafe {
+                    timebreak_platform::macos::configure_macos_transparent_overlay(ns_window);
+                }
+            }
+        }
+        Ok(true)
+    }
+}
+
+#[tauri::command]
 fn toggle_fullscreen(window: tauri::WebviewWindow) -> Result<bool, String> {
-    let is_fs = window.is_fullscreen().unwrap_or(false);
-    let target = !is_fs;
-    let _ = window.set_fullscreen(target);
-    if !target {
-        let _ = window.set_size(tauri::LogicalSize::new(960.0, 600.0));
+    let current_size = window.inner_size().unwrap_or_default();
+    let monitor = window.primary_monitor().ok().flatten();
+    let is_fullscreen_size = if let Some(m) = &monitor {
+        current_size.width >= m.size().width - 20 && current_size.height >= m.size().height - 20
+    } else {
+        false
+    };
+
+    let target_fullscreen = !is_fullscreen_size;
+    if target_fullscreen {
+        if let Some(m) = &monitor {
+            let _ = window.set_position(*m.position());
+            let _ = window.set_size(*m.size());
+        }
+    } else {
+        let _ = window.set_size(tauri::LogicalSize::new(880.0, 560.0));
         let _ = window.center();
     }
     let _ = window.set_always_on_top(true);
-    Ok(target)
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::id;
+        if let Ok(ns_window_ptr) = window.ns_window() {
+            let ns_window = ns_window_ptr as id;
+            unsafe {
+                timebreak_platform::macos::configure_macos_transparent_overlay(ns_window);
+            }
+        }
+    }
+    Ok(target_fullscreen)
 }
 
 #[tauri::command]
 fn set_window_pip(window: tauri::WebviewWindow, is_pip: bool) -> Result<(), String> {
     if is_pip {
-        let _ = window.set_fullscreen(false);
         let _ = window.set_size(tauri::LogicalSize::new(800.0, 520.0));
         let _ = window.center();
     } else {
-        let _ = window.set_fullscreen(true);
+        if let Ok(Some(m)) = window.primary_monitor() {
+            let _ = window.set_position(*m.position());
+            let _ = window.set_size(*m.size());
+        }
     }
     let _ = window.set_always_on_top(true);
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::id;
+        if let Ok(ns_window_ptr) = window.ns_window() {
+            let ns_window = ns_window_ptr as id;
+            unsafe {
+                timebreak_platform::macos::configure_macos_transparent_overlay(ns_window);
+            }
+        }
+    }
     Ok(())
 }
 
@@ -226,8 +304,16 @@ fn main() {
     tauri::Builder::default()
         .manage(app_state)
         .setup(|app| {
-            // Configure main window directly as transparent overlay
+            // Configure main window directly as transparent overlay spanning the monitor
             if let Some(main_window) = app.get_webview_window("main") {
+                if let Ok(Some(monitor)) = main_window.primary_monitor() {
+                    let size = monitor.size();
+                    let position = monitor.position();
+                    let _ = main_window.set_position(*position);
+                    let _ = main_window.set_size(*size);
+                }
+                let _ = main_window.set_always_on_top(true);
+
                 #[cfg(target_os = "macos")]
                 {
                     use cocoa::base::id;
@@ -241,6 +327,55 @@ fn main() {
                     }
                 }
             }
+
+            // Create macOS tray icon for 1-click restore/hide
+            let toggle_item = tauri::menu::MenuItem::with_id(
+                app,
+                "toggle",
+                "TimeBreak: Ko'rsatish / Yashirish (H)",
+                true,
+                None::<&str>,
+            )?;
+            let quit_item = tauri::menu::MenuItem::with_id(
+                app,
+                "quit",
+                "Chiqish (Quit)",
+                true,
+                None::<&str>,
+            )?;
+            let menu = tauri::menu::Menu::with_items(app, &[&toggle_item, &quit_item])?;
+
+            let _tray = tauri::tray::TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "toggle" {
+                        if let Some(main_win) = app.get_webview_window("main") {
+                            let is_vis = main_win.is_visible().unwrap_or(false);
+                            if is_vis {
+                                let _ = main_win.hide();
+                            } else {
+                                let _ = main_win.show();
+                                let _ = main_win.set_focus();
+                                #[cfg(target_os = "macos")]
+                                {
+                                    use cocoa::base::id;
+                                    if let Ok(ns_window_ptr) = main_win.ns_window() {
+                                        let ns_window = ns_window_ptr as id;
+                                        unsafe {
+                                            timebreak_platform::macos::configure_macos_transparent_overlay(ns_window);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -258,7 +393,10 @@ fn main() {
             set_setting,
             get_dev_config,
             toggle_fullscreen,
-            set_window_pip
+            set_window_pip,
+            hide_overlay,
+            show_overlay,
+            toggle_overlay_visibility
         ])
         .run(tauri::generate_context!())
         .expect("error while running TimeBreak application");

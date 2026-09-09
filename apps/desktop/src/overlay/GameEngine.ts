@@ -13,6 +13,7 @@ import { OverlayRenderer, sound } from '@timebreak/renderer';
 export interface GameEngineCallbacks {
   onSessionFinish: (shots: ShotTelemetryEvent[], durationSeconds: number) => void;
   onEscape: () => void;
+  onHide?: () => void;
 }
 
 export class GameEngine {
@@ -141,6 +142,14 @@ export class GameEngine {
       e.preventDefault();
       this.stop();
       this.callbacks.onEscape();
+      return;
+    }
+
+    if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      if (this.callbacks.onHide) {
+        this.callbacks.onHide();
+      }
       return;
     }
 

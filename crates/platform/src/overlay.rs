@@ -85,9 +85,10 @@ pub mod macos {
             let _: () = msg_send![content_view, setWantsLayer: 1i8];
         }
 
-        // Join all spaces and show over full screen apps
+        // Join all spaces, follow into active space, and float over native full screen apps
         let behavior = NSWindowCollectionBehavior::NSWindowCollectionBehaviorCanJoinAllSpaces
-            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary;
+            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary
+            | NSWindowCollectionBehavior::NSWindowCollectionBehaviorMoveToActiveSpace;
         ns_window.setCollectionBehavior_(behavior);
     }
 }

@@ -15,7 +15,9 @@
       {
         "label": "main",
         "title": "TimeBreak",
-        "fullscreen": true,
+        "fullscreen": false,
+        "resizable": true,
+        "maximized": true,
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true,

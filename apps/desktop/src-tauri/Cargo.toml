@@ -13,7 +13,7 @@ timebreak-analytics = { path = "../../../crates/analytics" }
 timebreak-storage = { path = "../../../crates/storage" }
 timebreak-platform = { path = "../../../crates/platform" }
 
-tauri = { workspace = true, features = ["macos-private-api"] }
+tauri = { workspace = true, features = ["macos-private-api", "tray-icon"] }
 tauri-plugin-global-shortcut = { workspace = true }
 tauri-plugin-shell = { workspace = true }
 serde = { workspace = true }
