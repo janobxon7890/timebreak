@@ -80,6 +80,11 @@ pub mod macos {
         ns_window.setOpaque_(NO);
         ns_window.setHasShadow_(NO);
 
+        let content_view: id = msg_send![ns_window, contentView];
+        if content_view != nil {
+            let _: () = msg_send![content_view, setWantsLayer: 1i8];
+        }
+
         // Join all spaces and show over full screen apps
         let behavior = NSWindowCollectionBehavior::NSWindowCollectionBehaviorCanJoinAllSpaces
             | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary;

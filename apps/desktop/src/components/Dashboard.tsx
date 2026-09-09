@@ -8,6 +8,7 @@ import {
   Clock,
   TrendingUp,
   Flame,
+  X,
 } from 'lucide-react';
 import { SessionMetrics, WeaponDefinition } from '@timebreak/shared-types';
 import { translations } from '../i18n/translations.js';
@@ -15,6 +16,7 @@ import { translations } from '../i18n/translations.js';
 interface DashboardProps {
   onStartBreak: () => void;
   onOpenSettings: () => void;
+  onClose?: () => void;
   recentSessions: SessionMetrics[];
   activeWeapon: WeaponDefinition;
   nextBreakSeconds: number;
@@ -24,6 +26,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({
   onStartBreak,
   onOpenSettings,
+  onClose,
   recentSessions,
   activeWeapon,
   nextBreakSeconds,
@@ -81,9 +84,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {t.startBreakNow}
           </button>
 
-          <button onClick={onOpenSettings} className="btn-secondary">
+          <button onClick={onOpenSettings} className="btn-secondary" title="Sozlamalar">
             <SettingsIcon className="w-4 h-4" />
           </button>
+
+          {onClose && (
+            <button onClick={onClose} className="btn-secondary hover:bg-rose-500/20" title="Yopish / O'yinga qaytish">
+              <X className="w-4 h-4 text-slate-300 hover:text-rose-400" />
+            </button>
+          )}
         </div>
       </div>
 

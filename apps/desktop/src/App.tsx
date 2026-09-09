@@ -85,8 +85,7 @@ const DEFAULT_SCHEDULER: BreakSchedulerConfig = {
 };
 
 export const App: React.FC = () => {
-  const [isOverlayMode, setIsOverlayMode] = useState<boolean>(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'settings'>('dashboard');
+  const [activeModal, setActiveModal] = useState<'none' | 'dashboard' | 'settings'>('none');
   const [activeWeapon, setActiveWeapon] = useState<WeaponDefinition>(DEFAULT_WEAPON);
   const [profile, setProfile] = useState<CS2Profile>(DEFAULT_PROFILE);
   const [crosshairConfig, setCrosshairConfig] = useState<CrosshairConfig>(DEFAULT_CROSSHAIR);
@@ -100,18 +99,8 @@ export const App: React.FC = () => {
 
   const [nextBreakSeconds, setNextBreakSeconds] = useState<number>(25 * 60);
 
-  // Check if launched directly as overlay or in dev mode
+  // Load data from Tauri backend
   useEffect(() => {
-    // Check URL params or env
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('overlay') === '1') {
-      setIsOverlayMode(true);
-      document.body.classList.remove('app-window');
-    } else {
-      document.body.classList.add('app-window');
-    }
-
-    // Try fetching from Tauri backend if running inside Tauri
     const loadTauriData = async () => {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
@@ -136,14 +125,8 @@ export const App: React.FC = () => {
             breakDurationMinutes: Math.max(1, Math.round(devConfig.session_seconds! / 60)),
           }));
         }
-
-        if (devConfig?.auto_break) {
-          setTimeout(() => {
-            handleStartBreak();
-          }, 100);
-        }
       } catch {
-        // Running in web preview fallback
+        // Web preview fallback
       }
     };
 
@@ -152,15 +135,9 @@ export const App: React.FC = () => {
 
   // Work interval countdown timer
   useEffect(() => {
-    if (isOverlayMode) return;
-
     const timer = setInterval(() => {
       setNextBreakSeconds((prev) => {
         if (prev <= 1) {
-          // Trigger auto break if enabled
-          if (schedulerConfig.autoStartBreak) {
-            handleStartBreak();
-          }
           return schedulerConfig.workIntervalMinutes * 60;
         }
         return prev - 1;
@@ -168,24 +145,9 @@ export const App: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOverlayMode, schedulerConfig]);
-
-  const handleStartBreak = async () => {
-    setIsOverlayMode(true);
-    document.body.classList.remove('app-window');
-
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('start_break');
-    } catch {
-      // In-browser mock
-    }
-  };
+  }, [schedulerConfig]);
 
   const handleEscape = async () => {
-    setIsOverlayMode(false);
-    document.body.classList.add('app-window');
-
     try {
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('emergency_escape');
@@ -195,9 +157,6 @@ export const App: React.FC = () => {
   };
 
   const handleSessionFinish = async (shots: ShotTelemetryEvent[], durationSeconds: number) => {
-    setIsOverlayMode(false);
-    document.body.classList.add('app-window');
-
     const startTimeMs = shots.length > 0 ? shots[0].timestampMs : Date.now() - durationSeconds * 1000;
     const endTimeMs = Date.now();
 
@@ -213,7 +172,6 @@ export const App: React.FC = () => {
 
       setLatestResults({ metrics, rec });
       setRecentSessions((prev) => [metrics, ...prev]);
-      await invoke('end_break');
     } catch {
       // Fallback in web preview: generate local metrics
       const hits = shots.filter((s) => s.hit).length;
@@ -263,9 +221,15 @@ export const App: React.FC = () => {
     }
   };
 
-  // If in overlay mode, render ONLY the transparent overlay canvas
-  if (isOverlayMode) {
-    return (
+  return (
+    <div
+      className="relative w-screen h-screen select-none overflow-hidden"
+      style={{
+        background: 'transparent',
+        backgroundColor: 'transparent',
+      }}
+    >
+      {/* 1. Transparent Aim Trainer Overlay (Always live & rendering above desktop) */}
       <OverlayView
         weapon={activeWeapon}
         profile={profile}
@@ -273,42 +237,52 @@ export const App: React.FC = () => {
         durationSeconds={schedulerConfig.breakDurationMinutes * 60}
         onSessionFinish={handleSessionFinish}
         onEscape={handleEscape}
+        onOpenDashboard={() => setActiveModal('dashboard')}
       />
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-[#0b0f19] text-slate-100 selection:bg-sky-500 selection:text-white">
-      {currentView === 'dashboard' ? (
-        <Dashboard
-          onStartBreak={handleStartBreak}
-          onOpenSettings={() => setCurrentView('settings')}
-          recentSessions={recentSessions}
-          activeWeapon={activeWeapon}
-          nextBreakSeconds={nextBreakSeconds}
-          lang={schedulerConfig.language}
-        />
-      ) : (
-        <SettingsView
-          onBack={() => setCurrentView('dashboard')}
-          profile={profile}
-          onSaveProfile={setProfile}
-          activeWeaponId={activeWeapon.id}
-          onSelectWeapon={(id) => {
-            const found = availableWeapons.find((w) => w.id === id);
-            if (found) setActiveWeapon(found);
-          }}
-          availableWeapons={availableWeapons}
-          schedulerConfig={schedulerConfig}
-          onSaveScheduler={setSchedulerConfig}
-          crosshairConfig={crosshairConfig}
-          onSaveCrosshair={setCrosshairConfig}
-          lang={schedulerConfig.language}
-          onSelectLang={(lang) => setSchedulerConfig({ ...schedulerConfig, language: lang })}
-        />
+      {/* 2. Floating Glass Dashboard Modal (Over IDE, doesn't hide background) */}
+      {activeModal === 'dashboard' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] overflow-y-auto">
+            <Dashboard
+              onStartBreak={() => setActiveModal('none')}
+              onOpenSettings={() => setActiveModal('settings')}
+              onClose={() => setActiveModal('none')}
+              recentSessions={recentSessions}
+              activeWeapon={activeWeapon}
+              nextBreakSeconds={nextBreakSeconds}
+              lang={schedulerConfig.language}
+            />
+          </div>
+        </div>
       )}
 
-      {/* Post-Break Results Modal */}
+      {/* 3. Floating Glass Settings Modal */}
+      {activeModal === 'settings' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] overflow-y-auto">
+            <SettingsView
+              onBack={() => setActiveModal('dashboard')}
+              profile={profile}
+              onSaveProfile={setProfile}
+              activeWeaponId={activeWeapon.id}
+              onSelectWeapon={(id) => {
+                const found = availableWeapons.find((w) => w.id === id);
+                if (found) setActiveWeapon(found);
+              }}
+              availableWeapons={availableWeapons}
+              schedulerConfig={schedulerConfig}
+              onSaveScheduler={setSchedulerConfig}
+              crosshairConfig={crosshairConfig}
+              onSaveCrosshair={setCrosshairConfig}
+              lang={schedulerConfig.language}
+              onSelectLang={(lang) => setSchedulerConfig({ ...schedulerConfig, language: lang })}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 4. Post-Break Results Modal */}
       {latestResults && (
         <ResultsModal
           metrics={latestResults.metrics}

@@ -183,6 +183,32 @@ fn set_setting(state: State<TimeBreakState>, key: String, value: String) -> Resu
     storage.set_setting(&key, &value).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn toggle_fullscreen(window: tauri::WebviewWindow) -> Result<bool, String> {
+    let is_fs = window.is_fullscreen().unwrap_or(false);
+    let target = !is_fs;
+    let _ = window.set_fullscreen(target);
+    if !target {
+        let _ = window.set_size(tauri::LogicalSize::new(960.0, 600.0));
+        let _ = window.center();
+    }
+    let _ = window.set_always_on_top(true);
+    Ok(target)
+}
+
+#[tauri::command]
+fn set_window_pip(window: tauri::WebviewWindow, is_pip: bool) -> Result<(), String> {
+    if is_pip {
+        let _ = window.set_fullscreen(false);
+        let _ = window.set_size(tauri::LogicalSize::new(800.0, 520.0));
+        let _ = window.center();
+    } else {
+        let _ = window.set_fullscreen(true);
+    }
+    let _ = window.set_always_on_top(true);
+    Ok(())
+}
+
 fn main() {
     env_logger::init();
 
@@ -200,12 +226,12 @@ fn main() {
     tauri::Builder::default()
         .manage(app_state)
         .setup(|app| {
-            // Configure overlay window on startup
-            if let Some(overlay_window) = app.get_webview_window("overlay") {
+            // Configure main window directly as transparent overlay
+            if let Some(main_window) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
                 {
                     use cocoa::base::id;
-                    if let Ok(ns_window_ptr) = overlay_window.ns_window() {
+                    if let Ok(ns_window_ptr) = main_window.ns_window() {
                         let ns_window = ns_window_ptr as id;
                         unsafe {
                             timebreak_platform::macos::configure_macos_transparent_overlay(
@@ -230,7 +256,9 @@ fn main() {
             get_recent_sessions,
             get_setting,
             set_setting,
-            get_dev_config
+            get_dev_config,
+            toggle_fullscreen,
+            set_window_pip
         ])
         .run(tauri::generate_context!())
         .expect("error while running TimeBreak application");
