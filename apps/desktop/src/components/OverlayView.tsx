@@ -13,6 +13,7 @@ interface OverlayViewProps {
   profile: CS2Profile;
   crosshairConfig: CrosshairConfig;
   durationSeconds: number;
+  sessionKey?: number;
   onSessionFinish: (shots: ShotTelemetryEvent[], durationSeconds: number) => void;
   onEscape: () => void;
   onOpenDashboard?: () => void;
@@ -24,6 +25,7 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
   profile,
   crosshairConfig,
   durationSeconds,
+  sessionKey = 0,
   onSessionFinish,
   onEscape,
   onOpenDashboard,
@@ -46,6 +48,10 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
     }
   };
 
+  // Keep callbacks stable across renders so timers don't restart the game loop every second
+  const callbacksRef = useRef({ onSessionFinish, onEscape, onHide: handleHide });
+  callbacksRef.current = { onSessionFinish, onEscape, onHide: handleHide };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -61,9 +67,9 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
       profile,
       crosshairConfig,
       {
-        onSessionFinish,
-        onEscape,
-        onHide: handleHide,
+        onSessionFinish: (shots, duration) => callbacksRef.current.onSessionFinish(shots, duration),
+        onEscape: () => callbacksRef.current.onEscape(),
+        onHide: () => callbacksRef.current.onHide(),
       }
     );
     engineRef.current = engine;
@@ -83,7 +89,24 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
       window.removeEventListener('resize', handleResize);
       engine.stop();
     };
-  }, [weapon, profile, crosshairConfig, durationSeconds, onSessionFinish, onEscape]);
+  }, []); // Run ONCE on mount so session countdown timer runs continuously!
+
+  // Dynamically update weapon and settings without resetting session timer
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.weapon = weapon;
+      engineRef.current.profile = profile;
+      engineRef.current.crosshairConfig = crosshairConfig;
+      engineRef.current.sessionDurationSeconds = durationSeconds;
+    }
+  }, [weapon, profile, crosshairConfig, durationSeconds]);
+
+  // Restart session cleanly when sessionKey explicitly increments
+  useEffect(() => {
+    if (engineRef.current && sessionKey > 0) {
+      engineRef.current.start(durationSeconds);
+    }
+  }, [sessionKey]);
 
   const togglePip = async () => {
     try {

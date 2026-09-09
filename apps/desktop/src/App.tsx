@@ -96,6 +96,7 @@ export const App: React.FC = () => {
     metrics: SessionMetrics;
     rec?: Recommendation;
   } | null>(null);
+  const [sessionKey, setSessionKey] = useState<number>(0);
 
   const [nextBreakSeconds, setNextBreakSeconds] = useState<number>(25 * 60);
 
@@ -273,6 +274,7 @@ export const App: React.FC = () => {
         profile={profile}
         crosshairConfig={crosshairConfig}
         durationSeconds={schedulerConfig.breakDurationMinutes * 60}
+        sessionKey={sessionKey}
         onSessionFinish={handleSessionFinish}
         onEscape={handleEscape}
         onHide={handleHide}
@@ -284,7 +286,10 @@ export const App: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="relative max-h-[90vh] overflow-y-auto">
             <Dashboard
-              onStartBreak={() => setActiveModal('none')}
+              onStartBreak={() => {
+                setActiveModal('none');
+                setSessionKey((prev) => prev + 1);
+              }}
               onOpenSettings={() => setActiveModal('settings')}
               onClose={() => setActiveModal('none')}
               recentSessions={recentSessions}
@@ -326,6 +331,10 @@ export const App: React.FC = () => {
         <ResultsModal
           metrics={latestResults.metrics}
           recommendation={latestResults.rec}
+          onPlayAgain={() => {
+            setLatestResults(null);
+            setSessionKey((prev) => prev + 1);
+          }}
           onClose={() => setLatestResults(null)}
           lang={schedulerConfig.language}
         />

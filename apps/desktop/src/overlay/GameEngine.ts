@@ -96,7 +96,7 @@ export class GameEngine {
     this.currentAmmo = weapon.magazineSize;
   }
 
-  public start(durationSeconds: number = 300) {
+  public start(durationSeconds: number = 40) {
     this.sessionId = `tb_${Date.now()}`;
     this.startTimeMs = performance.now();
     this.lastFrameTimeMs = this.startTimeMs;

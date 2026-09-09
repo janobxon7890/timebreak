@@ -7,6 +7,7 @@ interface ResultsModalProps {
   metrics: SessionMetrics;
   recommendation?: Recommendation;
   onClose: () => void;
+  onPlayAgain?: () => void;
   lang: 'uz' | 'en';
 }
 
@@ -14,6 +15,7 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
   metrics,
   recommendation,
   onClose,
+  onPlayAgain,
   lang,
 }) => {
   const t = translations[lang];
@@ -128,9 +130,19 @@ export const ResultsModal: React.FC<ResultsModalProps> = ({
           </div>
         )}
 
-        {/* Return to Work Button */}
-        <div className="flex justify-end pt-2">
-          <button onClick={onClose} className="btn-primary">
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          {onPlayAgain && (
+            <button
+              onClick={onPlayAgain}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Crosshair className="w-4 h-4 text-sky-400" />
+              <span>Yana o'ynash (40s)</span>
+            </button>
+          )}
+
+          <button onClick={onClose} className="btn-primary flex items-center gap-2">
             <span>Ishga qaytish</span>
             <ArrowRight className="w-4 h-4" />
           </button>
