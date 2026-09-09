@@ -1,6 +1,6 @@
 # TIMEBREAK 🎯
 
-> **Counter-Strike 2 inspired micro-break aim trainer directly on top of your desktop.**
+**Counter-Strike 2 inspired micro-break aim trainer directly on top of your desktop.**
 
 TimeBreak is a system-wide desktop application designed for developers and computer power users. Rather than leaving your IDE, browser, or active window during a Pomodoro or work break, TimeBreak renders a **100% transparent overlay** on top of your existing desktop. Target silhouettes peek, strafe, and move while your underlying code, terminals, and windows remain completely visible.
 
