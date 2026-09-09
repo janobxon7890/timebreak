@@ -49,9 +49,22 @@ export class GameEngine {
   public isAirborne: boolean = false;
   private keysHeld: Record<string, boolean> = {};
 
-  // Aim Crosshair Position
-  public crosshairX: number = 960;
-  public crosshairY: number = 540;
+  // Aim Crosshair Position (exact mouse/touchpad cursor coordinate)
+  public crosshairX: number = 0;
+  public crosshairY: number = 0;
+
+  // Screen & DPI Helpers
+  public get logicalWidth(): number {
+    return this.canvas.clientWidth || window.innerWidth;
+  }
+
+  public get logicalHeight(): number {
+    return this.canvas.clientHeight || window.innerHeight;
+  }
+
+  public get dpr(): number {
+    return window.devicePixelRatio || 1;
+  }
 
   // Targets & Telemetry
   public targets: TargetEntity[] = [];
@@ -94,6 +107,10 @@ export class GameEngine {
     this.currentAmmo = this.weapon.magazineSize;
     this.shotIndex = 0;
 
+    // Center crosshair initially
+    this.crosshairX = this.logicalWidth / 2;
+    this.crosshairY = this.logicalHeight / 2;
+
     this.bindEvents();
     this.loop();
   }
@@ -102,7 +119,7 @@ export class GameEngine {
     this.isRunning = false;
     cancelAnimationFrame(this.animFrameId);
     this.unbindEvents();
-    this.renderer.clear(this.canvas.width, this.canvas.height);
+    this.renderer.clear(this.logicalWidth, this.logicalHeight);
   }
 
   private bindEvents() {
@@ -150,10 +167,10 @@ export class GameEngine {
   };
 
   private handleMouseMove = (e: MouseEvent) => {
-    // Relative aim tracking with CS2 sensitivity scaling
-    const factor = 1.0;
-    this.crosshairX = Math.max(20, Math.min(this.canvas.width - 20, this.crosshairX + e.movementX * factor));
-    this.crosshairY = Math.max(20, Math.min(this.canvas.height - 20, this.crosshairY + e.movementY * factor));
+    // Exact 1:1 synchronization with touchpad/mouse cursor
+    const rect = this.canvas.getBoundingClientRect();
+    this.crosshairX = e.clientX - rect.left;
+    this.crosshairY = e.clientY - rect.top;
   };
 
   private handleMouseDown = (e: MouseEvent) => {
@@ -400,7 +417,7 @@ export class GameEngine {
       t.y += t.vy * dt;
 
       if (t.x < 60 && t.vx < 0) t.vx = -t.vx;
-      if (t.x + t.width > this.canvas.width - 60 && t.vx > 0) t.vx = -t.vx;
+      if (t.x + t.width > this.logicalWidth - 60 && t.vx > 0) t.vx = -t.vx;
 
       // Expire old targets
       if (now - t.spawnTimeMs > t.lifetimeMs) {
@@ -425,10 +442,12 @@ export class GameEngine {
     const width = 60;
     const height = pose === 'standing' ? 140 : pose === 'crouched' ? 95 : 35;
 
-    const marginX = 140;
-    const marginY = 100;
-    const x = marginX + Math.random() * (this.canvas.width - marginX * 2 - width);
-    const y = marginY + Math.random() * (this.canvas.height - marginY * 2 - height);
+    const marginX = Math.min(120, this.logicalWidth * 0.1);
+    const marginY = Math.min(80, this.logicalHeight * 0.1);
+    const availW = Math.max(100, this.logicalWidth - marginX * 2 - width);
+    const availH = Math.max(100, this.logicalHeight - marginY * 2 - height);
+    const x = marginX + Math.random() * availW;
+    const y = marginY + Math.random() * availH;
 
     const hitboxes = [
       {
@@ -471,7 +490,16 @@ export class GameEngine {
   }
 
   private render(now: number) {
-    this.renderer.clear(this.canvas.width, this.canvas.height);
+    const dpr = this.dpr;
+    const w = this.logicalWidth;
+    const h = this.logicalHeight;
+
+    const ctx = this.canvas.getContext('2d');
+    if (ctx) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    this.renderer.clear(w, h);
 
     // 1. Render active target silhouettes
     this.renderer.renderTargets(this.targets, now);
@@ -479,7 +507,7 @@ export class GameEngine {
     // 2. Render hit markers
     this.renderer.renderHitMarkers(now);
 
-    // 3. Render CS2 Crosshair
+    // 3. Render CS2 Crosshair (unified with mouse/touchpad coordinate)
     const speed = Math.hypot(this.playerVx, this.playerVy);
     this.renderer.renderCrosshair(this.crosshairX, this.crosshairY, this.crosshairConfig, speed * 0.08);
 
@@ -490,8 +518,8 @@ export class GameEngine {
     const acc = this.shots.length > 0 ? (hits / this.shots.length) * 100 : 0;
 
     this.renderer.renderHUD(
-      this.canvas.width,
-      this.canvas.height,
+      w,
+      h,
       remaining,
       this.currentAmmo,
       this.weapon.magazineSize,

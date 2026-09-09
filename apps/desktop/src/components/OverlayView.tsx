@@ -40,11 +40,6 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
 
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-    }
-
     const engine = new GameEngine(
       canvas,
       weapon,
@@ -60,9 +55,9 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
 
     const handleResize = () => {
       if (canvas) {
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-        if (ctx) ctx.scale(dpr, dpr);
+        const currentDpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * currentDpr;
+        canvas.height = window.innerHeight * currentDpr;
       }
     };
 
@@ -90,6 +85,7 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
       style={{
         background: 'transparent',
         backgroundColor: 'transparent',
+        cursor: 'none',
       }}
     >
       {/* 100% Transparent Fullscreen/PiP Game Canvas */}
@@ -101,6 +97,7 @@ export const OverlayView: React.FC<OverlayViewProps> = ({
           height: '100vh',
           background: 'transparent',
           backgroundColor: 'transparent',
+          cursor: 'none',
         }}
       />
 
