@@ -19,7 +19,7 @@ dev:
 
 dev-game:
 	@echo "==> Launching TimeBreak Instant Overlay Game (Dev Break Mode)..."
-	TIMEBREAK_DEV=1 TIMEBREAK_AUTO_BREAK=1 TIMEBREAK_SESSION_SECONDS=90 pnpm --filter desktop tauri dev
+	TIMEBREAK_DEV=1 TIMEBREAK_AUTO_BREAK=1 TIMEBREAK_SESSION_SECONDS=40 pnpm --filter desktop tauri dev
 
 test:
 	@echo "==> Running Rust workspace unit and integration tests..."

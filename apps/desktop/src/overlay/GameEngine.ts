@@ -24,7 +24,7 @@ export class GameEngine {
   // Session State
   public sessionId: string = '';
   public startTimeMs: number = 0;
-  public sessionDurationSeconds: number = 90; // 1.5 minutes default
+  public sessionDurationSeconds: number = 40; // 40 seconds default
   public isRunning: boolean = false;
 
   // Weapon & Profile
@@ -302,9 +302,9 @@ export class GameEngine {
       aimErrorY: hitTarget ? this.crosshairY - (hitTarget.y + hitTarget.height * 0.15) : undefined,
       aimErrorDistance: hitTarget
         ? Math.hypot(
-            this.crosshairX - (hitTarget.x + hitTarget.width * 0.5),
-            this.crosshairY - (hitTarget.y + hitTarget.height * 0.15)
-          )
+          this.crosshairX - (hitTarget.x + hitTarget.width * 0.5),
+          this.crosshairY - (hitTarget.y + hitTarget.height * 0.15)
+        )
         : undefined,
       recoilX: this.currentRecoilX,
       recoilY: this.currentRecoilY,
@@ -531,8 +531,8 @@ export class GameEngine {
       },
     ];
 
-    // Ultra-persistent lifetime: 180 seconds (3 full minutes - stays until shot down)
-    const lifetimeMs = 180000;
+    // Ultra-persistent lifetime: 300 seconds (5 full minutes - stays until shot down)
+    const lifetimeMs = 300000;
 
     const target: TargetEntity = {
       id: `target_${this.targetCounter}`,

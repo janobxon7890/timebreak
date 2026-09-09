@@ -73,7 +73,7 @@ const DEFAULT_CROSSHAIR: CrosshairConfig = {
 
 const DEFAULT_SCHEDULER: BreakSchedulerConfig = {
   workIntervalMinutes: 25,
-  breakDurationMinutes: 1.5,
+  breakDurationMinutes: 40 / 60,
   autoStartBreak: true,
   notificationBeforeBreak: true,
   notificationLeadTimeMinutes: 2,
@@ -123,6 +123,11 @@ export const App: React.FC = () => {
           setSchedulerConfig((prev) => ({
             ...prev,
             breakDurationMinutes: devConfig.session_seconds! / 60,
+          }));
+        } else {
+          setSchedulerConfig((prev) => ({
+            ...prev,
+            breakDurationMinutes: 40 / 60,
           }));
         }
       } catch {
