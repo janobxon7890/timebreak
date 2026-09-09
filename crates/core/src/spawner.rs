@@ -16,10 +16,10 @@ pub struct SpawnerConfig {
 impl Default for SpawnerConfig {
     fn default() -> Self {
         Self {
-            min_lifetime_ms: 1800,
-            max_lifetime_ms: 3200,
-            spawn_interval_ms: 1200,
-            max_concurrent_targets: 3,
+            min_lifetime_ms: 30000,
+            max_lifetime_ms: 60000,
+            spawn_interval_ms: 900,
+            max_concurrent_targets: 4,
             screen_width: 1920.0,
             screen_height: 1080.0,
         }

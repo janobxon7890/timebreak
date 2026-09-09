@@ -440,12 +440,12 @@ export class GameEngine {
         t.nextTurnTimeMs = now + 1600 + Math.random() * 2400;
       }
 
-      // Generous lifetime & smooth fade out
+      // Extended lifetime (45-60s) & smooth fade out in final 2.5 seconds
       const remainingLifetime = t.lifetimeMs - (now - t.spawnTimeMs);
       if (remainingLifetime <= 0) {
         t.isAlive = false;
-      } else if (remainingLifetime < 1500) {
-        t.visibleFraction = Math.max(0.1, remainingLifetime / 1500);
+      } else if (remainingLifetime < 2500) {
+        t.visibleFraction = Math.max(0.1, remainingLifetime / 2500);
       } else {
         t.visibleFraction = 1.0;
       }
@@ -522,8 +522,8 @@ export class GameEngine {
       },
     ];
 
-    // Extended lifetime: 8 to 12 seconds (plenty of time to track and shoot)
-    const lifetimeMs = 8000 + Math.floor(Math.random() * 4000);
+    // Extended persistent lifetime: 45 to 60 seconds (stay on screen until shot)
+    const lifetimeMs = 45000 + Math.floor(Math.random() * 15000);
 
     const target: TargetEntity = {
       id: `target_${this.targetCounter}`,
