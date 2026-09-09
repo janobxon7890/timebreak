@@ -8,30 +8,26 @@ Shoot targets with authentic CS2 ballistics (spray recoil patterns, stance/veloc
 
 ---
 
-## 🚀 Quick Start (macOS Apple Silicon / arm64)
+## 🚀 Quick Start (Ubuntu / Debian Linux & macOS)
 
-### Prerequisites
-- macOS 13+ (Ventura / Sonoma / Sequoia)
-- Xcode Command Line Tools (`xcode-select --install`)
-- Node.js 20+ & `pnpm` (`npm i -g pnpm`)
-- Rust 1.78+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
+TimeBreak tizmga moslashuvchan (cross-platform). Loyiha `make dev` yoki `make setup` buyrug'i berilishi bilan operatsion tizimni (Ubuntu/Debian, Fedora, Arch yoki macOS) avtomatik aniqlaydi va kerakli kutubxonalarni o'zi o'rnatib ishga tushadi.
 
-### Commands
+### Boshlash:
 
 ```bash
-# 1. Setup project dependencies
-make setup
-
-# 2. Launch the developer instant aim training overlay (immediate break)
-make dev-game
-
-# 3. Launch full desktop shell (scheduler, dashboard, settings)
+# 1. To'g'ridan-to'g'ri dasturni ishga tushirish (kamchiliklar bo'lsa avtomatik o'rnatadi):
 make dev
 
-# 4. Run full test suite (Rust unit/integration tests + frontend tests)
+# yoki maxsus 40 sekundlik tezkor mashg'ulot rejimi:
+make dev-game
+
+# 2. Tizim kutubxonalarini oldindan qo'lda sozlash (ixtiyoriy):
+make setup
+
+# 3. Testlarni ishga tushirish:
 make test
 
-# 5. Build release production package
+# 4. Production release paketini yig'ish:
 make build
 ```
 
