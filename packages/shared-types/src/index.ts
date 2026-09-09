@@ -117,6 +117,9 @@ export interface TargetEntity {
   visibleFraction: number;
   isAlive: boolean;
   screenId: string;
+  baseY?: number;
+  nextTurnTimeMs?: number;
+  movementType?: 'strafe' | 'roam' | 'sine' | 'static';
 }
 
 export interface ShotTelemetryEvent {

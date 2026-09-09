@@ -412,16 +412,42 @@ export class GameEngine {
     }
 
     // Update targets
+    const marginX = 50;
+    const marginY = 50;
+    const maxY = Math.max(200, this.logicalHeight - 130);
+
     for (const t of this.targets) {
       t.x += t.vx * dt;
-      t.y += t.vy * dt;
 
-      if (t.x < 60 && t.vx < 0) t.vx = -t.vx;
-      if (t.x + t.width > this.logicalWidth - 60 && t.vx > 0) t.vx = -t.vx;
+      // Handle sine wave or direct vertical movement
+      if (t.movementType === 'sine' && t.baseY !== undefined) {
+        t.y = Math.min(maxY, Math.max(marginY, t.baseY + Math.sin((now - t.spawnTimeMs) * 0.0035) * 35));
+      } else {
+        t.y += t.vy * dt;
+      }
 
-      // Expire old targets
-      if (now - t.spawnTimeMs > t.lifetimeMs) {
+      // Horizontal boundary bouncing
+      if (t.x < marginX && t.vx < 0) t.vx = Math.abs(t.vx);
+      if (t.x + t.width > this.logicalWidth - marginX && t.vx > 0) t.vx = -Math.abs(t.vx);
+
+      // Vertical boundary bouncing for roaming targets
+      if (t.y < marginY && t.vy < 0) t.vy = Math.abs(t.vy);
+      if (t.y + t.height > maxY && t.vy > 0) t.vy = -Math.abs(t.vy);
+
+      // CS2-style periodic counter-strafe direction switches
+      if (t.nextTurnTimeMs && now >= t.nextTurnTimeMs) {
+        t.vx = -t.vx;
+        t.nextTurnTimeMs = now + 1600 + Math.random() * 2400;
+      }
+
+      // Generous lifetime & smooth fade out
+      const remainingLifetime = t.lifetimeMs - (now - t.spawnTimeMs);
+      if (remainingLifetime <= 0) {
         t.isAlive = false;
+      } else if (remainingLifetime < 1500) {
+        t.visibleFraction = Math.max(0.1, remainingLifetime / 1500);
+      } else {
+        t.visibleFraction = 1.0;
       }
     }
 
@@ -429,25 +455,53 @@ export class GameEngine {
   }
 
   private updateSpawner(now: number) {
-    if (this.targets.length >= 3) return;
-    if (now - this.lastSpawnTimeMs < 1200) return;
+    // Keep up to 4 concurrent targets on screen
+    if (this.targets.length >= 4) return;
+    if (now - this.lastSpawnTimeMs < 900) return;
 
     this.lastSpawnTimeMs = now;
     this.targetCounter += 1;
 
     const poses: TargetPose[] = ['standing', 'standing', 'crouched', 'head_only'];
     const pose = poses[Math.floor(Math.random() * poses.length)];
-    const isMoving = Math.random() < 0.35;
+
+    // 80% moving targets for excellent tracking and direction practice
+    const moveRoll = Math.random();
+    let movementType: 'strafe' | 'roam' | 'sine' | 'static' = 'static';
+    let vx = 0;
+    let vy = 0;
+    let nextTurnTimeMs: number | undefined;
+
+    if (moveRoll < 0.40) {
+      // Horizontal ADAD counter-strafing
+      movementType = 'strafe';
+      vx = (Math.random() < 0.5 ? 1 : -1) * (90 + Math.random() * 60);
+      nextTurnTimeMs = now + 1500 + Math.random() * 2000;
+    } else if (moveRoll < 0.75) {
+      // Multi-directional roaming (diagonal tracking)
+      movementType = 'roam';
+      vx = (Math.random() < 0.5 ? 1 : -1) * (80 + Math.random() * 50);
+      vy = (Math.random() < 0.5 ? 1 : -1) * (40 + Math.random() * 40);
+      nextTurnTimeMs = now + 2000 + Math.random() * 2500;
+    } else if (moveRoll < 0.88) {
+      // Evasive wave bobbing
+      movementType = 'sine';
+      vx = (Math.random() < 0.5 ? 1 : -1) * (100 + Math.random() * 40);
+      nextTurnTimeMs = now + 2000 + Math.random() * 2000;
+    } else {
+      // Static placement
+      movementType = 'static';
+    }
 
     const width = 60;
     const height = pose === 'standing' ? 140 : pose === 'crouched' ? 95 : 35;
 
-    const marginX = Math.min(120, this.logicalWidth * 0.1);
-    const marginY = Math.min(80, this.logicalHeight * 0.1);
-    const availW = Math.max(100, this.logicalWidth - marginX * 2 - width);
-    const availH = Math.max(100, this.logicalHeight - marginY * 2 - height);
-    const x = marginX + Math.random() * availW;
-    const y = marginY + Math.random() * availH;
+    const spawnMarginX = Math.min(100, this.logicalWidth * 0.1);
+    const spawnMarginY = Math.min(70, this.logicalHeight * 0.1);
+    const availW = Math.max(120, this.logicalWidth - spawnMarginX * 2 - width);
+    const availH = Math.max(120, this.logicalHeight - spawnMarginY * 2 - height - 80);
+    const x = spawnMarginX + Math.random() * availW;
+    const y = spawnMarginY + Math.random() * availH;
 
     const hitboxes = [
       {
@@ -468,22 +522,28 @@ export class GameEngine {
       },
     ];
 
+    // Extended lifetime: 8 to 12 seconds (plenty of time to track and shoot)
+    const lifetimeMs = 8000 + Math.floor(Math.random() * 4000);
+
     const target: TargetEntity = {
       id: `target_${this.targetCounter}`,
       spawnTimeMs: now,
-      lifetimeMs: 2500,
+      lifetimeMs,
       x,
       y,
-      vx: isMoving ? (Math.random() < 0.5 ? 90 : -90) : 0,
-      vy: 0,
+      vx,
+      vy,
       width,
       height,
       pose,
-      behaviour: isMoving ? 'strafe' : 'static',
+      behaviour: movementType === 'static' ? 'static' : 'strafe',
       hitboxes,
       visibleFraction: 1.0,
       isAlive: true,
       screenId: 'main',
+      baseY: y,
+      nextTurnTimeMs,
+      movementType,
     };
 
     this.targets.push(target);

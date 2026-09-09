@@ -42,6 +42,10 @@ export class OverlayRenderer {
       this.ctx.save();
       this.ctx.translate(t.x, t.y);
 
+      if (t.visibleFraction !== undefined && t.visibleFraction < 1.0) {
+        this.ctx.globalAlpha = Math.max(0.1, t.visibleFraction);
+      }
+
       // Hitbox debug rendering if enabled
       if (this.debugMode) {
         for (const hb of t.hitboxes) {
