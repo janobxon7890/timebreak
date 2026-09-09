@@ -24,7 +24,7 @@ export class GameEngine {
   // Session State
   public sessionId: string = '';
   public startTimeMs: number = 0;
-  public sessionDurationSeconds: number = 300; // 5 minutes default
+  public sessionDurationSeconds: number = 90; // 1.5 minutes default
   public isRunning: boolean = false;
 
   // Weapon & Profile
@@ -531,8 +531,8 @@ export class GameEngine {
       },
     ];
 
-    // Extended persistent lifetime: 45 to 60 seconds (stay on screen until shot)
-    const lifetimeMs = 45000 + Math.floor(Math.random() * 15000);
+    // Ultra-persistent lifetime: 180 seconds (3 full minutes - stays until shot down)
+    const lifetimeMs = 180000;
 
     const target: TargetEntity = {
       id: `target_${this.targetCounter}`,
