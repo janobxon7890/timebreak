@@ -1,0 +1,17 @@
+{
+  "name": "timebreak-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Counter-Strike 2 inspired desktop micro-break aim trainer directly over your desktop",
+  "scripts": {
+    "dev": "pnpm --filter desktop dev",
+    "dev:game": "TIMEBREAK_DEV=1 TIMEBREAK_AUTO_BREAK=1 pnpm --filter desktop dev",
+    "build": "pnpm --filter desktop build",
+    "test": "pnpm --filter desktop test",
+    "typecheck": "pnpm --filter \"@timebreak/*\" typecheck && pnpm --filter desktop typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}
